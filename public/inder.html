@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Volatility Signals Bot</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #2d2d2d;
+            padding: 30px;
+            border-radius: 10px;
+        }
+        h1 { color: #00ff88; }
+        .status { 
+            background: #333;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .btn {
+            background: #00ff88;
+            color: black;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Volatility Signals Bot</h1>
+        <div class="status">
+            <h2>✅ Bot Status: LIVE</h2>
+            <p>Connected to Deriv Vol 75 (1s) Index</p>
+            <p>Telegram signals are active!</p>
+        </div>
+        
+        <div class="status">
+            <h3>📊 Current Configuration:</h3>
+            <p>Monitoring: Volatility 75 (1s) Index</p>
+            <p>Update Frequency: Every 1 second</p>
+            <p>Signal Threshold: 80%+ confidence</p>
+        </div>
+        
+        <div class="status">
+            <h3>📱 Telegram Integration:</h3>
+            <p>Signals sent to your Telegram automatically</p>
+            <p>Bot: @Volatilitytest1_bot</p>
+        </div>
+        
+        <button class="btn" onclick="testTelegram()">Test Telegram</button>
+        
+        <div class="status">
+            <h3>🎯 What You Get:</h3>
+            <ul style="text-align: left;">
+                <li>Real-time Vol 75 (1s) analysis</li>
+                <li>High-confidence trading signals</li>
+                <li>Entry, stop loss, and take profit levels</li>
+                <li>Risk management recommendations</li>
+                <li>Technical analysis details</li>
+            </ul>
+        </div>
+        
+        <div class="status">
+            <p><strong>🔴 Bot is monitoring live data 24/7</strong></p>
+            <p>Signals will be sent to your Telegram when conditions are met</p>
+        </div>
+    </div>
+
+    <script>
+        async function testTelegram() {
+            try {
+                const response = await fetch('/api/telegram-test', { method: 'POST' });
+                const result = await response.json();
+                alert(result.message);
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>
