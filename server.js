@@ -2,18 +2,15 @@ const express = require('express');
 const WebSocket = require('ws');
 const path = require('path');
 const TelegramBot = require('node-telegram-bot-api');
-const cron = require('node-cron');
 const cors = require('cors');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-// Telegram configuration
 const TELEGRAM_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
@@ -22,13 +19,11 @@ if (TELEGRAM_TOKEN) {
     bot = new TelegramBot(TELEGRAM_TOKEN, { polling: false });
 }
 
-// Deriv WebSocket connection
 let derivWS = null;
 let isConnectedToDerivs = false;
 let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 5;
 
-// Bot state
 let botState = {
     isRunning: false,
     currentVol: '1HZ75V',
@@ -52,14 +47,13 @@ let botState = {
     }
 };
 
-// CORRECTED Deriv volatility indices mapping
 const volatilityIndices = {
     regular: {
-        10: { symbol: 'R_10', name: 'Volatility 10 Index', stopLoss: 30, takeProfit: 75, riskPercent: 1, frequency: '~2s' },
-        25: { symbol: 'R_25', name: 'Volatility 25 Index', stopLoss: 50, takeProfit: 125, riskPercent: 1.5, frequency: '~2s' },
-        50: { symbol: 'R_50', name: 'Volatility 50 Index', stopLoss: 100, takeProfit: 250, riskPercent: 2, frequency: '~2s' },
-        75: { symbol: 'R_75', name: 'Volatility 75 Index', stopLoss: 150, takeProfit: 375, riskPercent: 2.5, frequency: '~2s' },
-        100: { symbol: 'R_100', name: 'Volatility 100 Index', stopLoss: 250, takeProfit: 625, riskPercent: 3, frequency: '~2s' }
+        10: { symbol: 'R_10', name: 'Volatility 10 Index', stopLoss: 30, takeProfit: 75, riskPercent: 1, frequency: '2s' },
+        25: { symbol: 'R_25', name: 'Volatility 25 Index', stopLoss: 50, takeProfit: 125, riskPercent: 1.5, frequency: '2s' },
+        50: { symbol: 'R_50', name: 'Volatility 50 Index', stopLoss: 100, takeProfit: 250, riskPercent: 2, frequency: '2s' },
+        75: { symbol: 'R_75', name: 'Volatility 75 Index', stopLoss: 150, takeProfit: 375, riskPercent: 2.5, frequency: '2s' },
+        100: { symbol: 'R_100', name: 'Volatility 100 Index', stopLoss: 250, takeProfit: 625, riskPercent: 3, frequency: '2s' }
     },
     '1s': {
         10: { symbol: '1HZ10V', name: 'Volatility 10 (1s) Index', stopLoss: 20, takeProfit: 50, riskPercent: 0.8, frequency: '1s' },
@@ -70,14 +64,13 @@ const volatilityIndices = {
     }
 };
 
-// Connect to Deriv WebSocket API
 function connectToDerivAPI() {
-    console.log('🔌 Connecting to Deriv WebSocket API...');
+    console.log('Connecting to Deriv WebSocket API...');
     
     derivWS = new WebSocket('wss://ws.binaryws.com/websockets/v3?app_id=1089');
     
     derivWS.on('open', () => {
-        console.log('✅ Connected to Deriv WebSocket API');
+        console.log('Connected to Deriv WebSocket API');
         isConnectedToDerivs = true;
         reconnectAttempts = 0;
         
@@ -85,7 +78,7 @@ function connectToDerivAPI() {
         
         if (bot && TELEGRAM_CHAT_ID) {
             const currentIndex = getCurrentVolatilityIndex();
-            bot.sendMessage(TELEGRAM_CHAT_ID, `🟢 Bot connected to LIVE Deriv data!\n📊 Monitoring: ${currentIndex.name}\n⚡ Update frequency: ${currentIndex.frequency}`);
+            bot.sendMessage(TELEGRAM_CHAT_ID, `Bot connected to LIVE Deriv data! Monitoring: ${currentIndex.name} Update frequency: ${currentIndex.frequency}`);
         }
     });
     
@@ -94,30 +87,30 @@ function connectToDerivAPI() {
             const response = JSON.parse(data);
             handleDerivMessage(response);
         } catch (error) {
-            console.error('❌ Error parsing Deriv message:', error);
+            console.error('Error parsing Deriv message:', error);
         }
     });
     
     derivWS.on('close', () => {
-        console.log('🔴 Deriv WebSocket connection closed');
+        console.log('Deriv WebSocket connection closed');
         isConnectedToDerivs = false;
         
         if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
             reconnectAttempts++;
-            console.log(`🔄 Reconnection attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}`);
+            console.log(`Reconnection attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}`);
             setTimeout(connectToDerivAPI, 5000);
         }
     });
     
     derivWS.on('error', (error) => {
-        console.error('❌ Deriv WebSocket error:', error);
+        console.error('Deriv WebSocket error:', error);
         isConnectedToDerivs = false;
     });
 }
 
 function subscribeToVolatilityIndex(symbol) {
     if (!derivWS || derivWS.readyState !== WebSocket.OPEN) {
-        console.log('⚠️ WebSocket not ready, queuing subscription...');
+        console.log('WebSocket not ready, queuing subscription...');
         setTimeout(() => subscribeToVolatilityIndex(symbol), 1000);
         return;
     }
@@ -132,7 +125,7 @@ function subscribeToVolatilityIndex(symbol) {
             subscribe: 1
         };
         
-        console.log(`📊 Subscribing to ${symbol} live data...`);
+        console.log(`Subscribing to ${symbol} live data...`);
         derivWS.send(JSON.stringify(subscription));
     }, 500);
 }
@@ -168,14 +161,14 @@ function handleDerivMessage(response) {
     
     if (response.msg_type === 'tick') {
         const currentIndex = getCurrentVolatilityIndex();
-        console.log(`✅ Successfully subscribed to ${response.echo_req.ticks} (${currentIndex.name})`);
+        console.log(`Successfully subscribed to ${response.echo_req.ticks} (${currentIndex.name})`);
     }
     
     if (response.error) {
-        console.error('❌ Deriv API Error:', response.error.message);
+        console.error('Deriv API Error:', response.error.message);
         
         if (response.error.code === 'InvalidSymbol') {
-            console.log('🔄 Invalid symbol, trying fallback...');
+            console.log('Invalid symbol, trying fallback...');
             if (botState.indexType === '1s') {
                 botState.indexType = 'regular';
                 botState.currentVol = 'R_75';
@@ -338,7 +331,7 @@ function generateRealTradingSignal(signals, strength, indicators) {
     
     sendAdvancedTelegramSignal(signal);
     
-    console.log(`🎯 REAL SIGNAL: ${direction} on ${currentIndex.name} (${currentIndex.frequency}) at ${entryPrice}`);
+    console.log(`REAL SIGNAL: ${direction} on ${currentIndex.name} (${currentIndex.frequency}) at ${entryPrice}`);
     
     return signal;
 }
@@ -372,38 +365,36 @@ function determineSignalReason(signals, indicators) {
 async function sendAdvancedTelegramSignal(signal) {
     if (!bot || !TELEGRAM_CHAT_ID) return;
     
-    const message = `
-🚨 *LIVE TRADING SIGNAL* 🚨
+    const message = `🚨 LIVE TRADING SIGNAL 🚨
 
-📊 *${signal.volatility}*
-⚡ *Update Frequency:* ${signal.frequency}
-🎯 *Direction:* ${signal.direction}
-💰 *Entry:* ${signal.entryPrice}
-🛡️ *Stop Loss:* ${signal.stopLoss}
-🎯 *Take Profit:* ${signal.takeProfit}
-📈 *Risk/Reward:* ${signal.riskReward}
-⚡ *Confidence:* ${signal.confidence}%
+📊 ${signal.volatility}
+⚡ Update Frequency: ${signal.frequency}
+🎯 Direction: ${signal.direction}
+💰 Entry: ${signal.entryPrice}
+🛡️ Stop Loss: ${signal.stopLoss}
+🎯 Take Profit: ${signal.takeProfit}
+📈 Risk/Reward: ${signal.riskReward}
+⚡ Confidence: ${signal.confidence}%
 
-📋 *Technical Analysis:*
+📋 Technical Analysis:
 • RSI: ${signal.technicals.rsi}
 • Volatility: ${signal.technicals.volatility}%
 • Trend: ${signal.technicals.trend}
 • Momentum: ${signal.technicals.momentum}
 
-💡 *Reason:* ${signal.reason}
-📊 *Spread:* ${signal.spread}
-⏰ *Time:* ${new Date(signal.timestamp).toLocaleTimeString()}
+💡 Reason: ${signal.reason}
+📊 Spread: ${signal.spread}
+⏰ Time: ${new Date(signal.timestamp).toLocaleTimeString()}
 
-*🔴 LIVE ${signal.indexType.toUpperCase()} DATA - Risk: ${signal.riskPercent}% max*
+🔴 LIVE ${signal.indexType.toUpperCase()} DATA - Risk: ${signal.riskPercent}% max
 
-_Execute manually on Deriv platform_
-    `;
+Execute manually on Deriv platform`;
     
     try {
-        await bot.sendMessage(TELEGRAM_CHAT_ID, message, { parse_mode: 'Markdown' });
-        console.log('📱 Advanced Telegram signal sent successfully');
+        await bot.sendMessage(TELEGRAM_CHAT_ID, message);
+        console.log('Advanced Telegram signal sent successfully');
     } catch (error) {
-        console.error('❌ Telegram send error:', error);
+        console.error('Telegram send error:', error);
     }
 }
 
@@ -498,8 +489,7 @@ app.post('/api/telegram-test', async (req, res) => {
     
     try {
         const currentIndex = getCurrentVolatilityIndex();
-        const testMessage = `
-🤖 *TEST MESSAGE*
+        const testMessage = `🤖 TEST MESSAGE
 
 ✅ Bot connected to LIVE Deriv data
 📊 Current Index: ${currentIndex.name}
@@ -507,10 +497,9 @@ app.post('/api/telegram-test', async (req, res) => {
 💰 Current Price: ${botState.currentPrice.toFixed(5)}
 🔗 Connection: ${isConnectedToDerivs ? 'LIVE' : 'DISCONNECTED'}
 
-Ready to send real ${botState.indexType} trading signals!
-        `;
+Ready to send real ${botState.indexType} trading signals!`;
         
-        await bot.sendMessage(TELEGRAM_CHAT_ID, testMessage, { parse_mode: 'Markdown' });
+        await bot.sendMessage(TELEGRAM_CHAT_ID, testMessage);
         res.json({ success: true, message: 'Test message sent with live data' });
     } catch (error) {
         res.status(500).json({ 
@@ -533,11 +522,10 @@ app.get('/health', (req, res) => {
     });
 });
 
-// Initialize Deriv connection on startup
 connectToDerivAPI();
 
 app.listen(PORT, () => {
-    console.log(`🚀 CORRECTED Volatility Bot server running on port ${PORT}`);
-    console.log(`📊 Default: Vol 75 (1s) - Symbol: ${botState.currentVol}`);
-    console.log(`📱 Telegram Bot: ${TELEGRAM_TOKEN ? 'Configured' : 'Not configured'}`);
-}); no
+    console.log(`CORRECTED Volatility Bot server running on port ${PORT}`);
+    console.log(`Default: Vol 75 (1s) - Symbol: ${botState.currentVol}`);
+    console.log(`Telegram Bot: ${TELEGRAM_TOKEN ? 'Configured' : 'Not configured'}`);
+});
